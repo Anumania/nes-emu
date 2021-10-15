@@ -9,7 +9,7 @@ namespace nes_emu
         public static byte accumulator;
         public static byte indexX;
         public static byte indexY;
-        public static bool[] statusFlags = new bool[7];
+        public static bool[] statusFlags = new bool[7]; //NV-BDIZC
         public static byte stackPTR;
         public static ushort PC = 0;
         public static byte[] RAM = new byte[0xffff];
@@ -42,6 +42,18 @@ namespace nes_emu
         static byte Pop() //not really pop
         {
             return Program.PRG[Program.PC];
+        }
+
+        static void ZeroCheck(byte check)
+        {
+            if (check == 0x00)
+            {
+                Program.statusFlags[5] = true;
+            }
+            else
+            {
+                Program.statusFlags[5] = false;
+            }
         }
         static void x00() //BRK
         {
@@ -87,8 +99,10 @@ namespace nes_emu
 
         static void x95() //STA zero page, x
         {
+            
             Program.PC++;
             Program.RAM[Pop() + Program.indexX] = Program.accumulator;
+            
         }
 
         static void x9D() //STA Absolute,X
@@ -110,15 +124,25 @@ namespace nes_emu
             Program.PC++;
             Program.accumulator = Pop();
         }
-
+        static void xD0() //BNE
+        {
+            Program.PC++;
+            sbyte dest = (sbyte)Pop();
+            if (Program.statusFlags[5])
+            {
+                Program.PC = (ushort)(Program.PC + (short)dest);
+            }
+        }
         static void xEA() //nop
         {
+            
             return;
         }
         
         static void xE8() //inx
         {
             Program.indexX++;
+            ZeroCheck(Program.indexX);
         }
 
     }
