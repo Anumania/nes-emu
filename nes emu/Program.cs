@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -19,7 +20,7 @@ namespace nes_emu
         {
             byte[] rom = File.ReadAllBytes("./rom.nes");
             Parser.Parse(rom, ref PRG, ref CHR);
-            //PRG = 
+            //PRG =
             for(; ;)  //main loop
             {
                 MethodInfo meth = typeof(Instructions).GetMethod("x" + PRG[PC].ToString("X"), BindingFlags.NonPublic|BindingFlags.Static);
@@ -29,8 +30,11 @@ namespace nes_emu
                 }
                 else
                 {
+                    
                     meth.Invoke(null,null);
-                    PC++;
+                    Disassembler disassembler = new(PRG);
+
+                    //PC++;
                 }
             }
         }
@@ -163,12 +167,79 @@ namespace nes_emu
 
     }
   
-    static class Disassembler
+    class Disassembler
     {
+        ushort PC = 0;
+        static string[] cc00 = new string[] { null, "BIT", "JMP", "JMPABS", "STY", "LDY", "CPY", "CPX" };
         static string[] cc01 = new string[] { "ORA", "AND", "EOR", "ADC", "STA", "LDA", "CMP", "SBC" };
-        static string Disassemble(ushort PC, byte[] PRG)
+        static string[] cc10 = new string[] { "ASL", "ROL", "LSR", "ROR", "STX", "LDX", "DEC", "INC" };
+        byte[] PRG;
+        public Disassembler(byte[] _PRG)
         {
-
+            PRG = _PRG;
+            List<string> disassembly = new();
+            while(PC < PRG.Length)
+            {
+                disassembly.Add(Disassemble(ref PC, PRG));
+            }
+            Console.WriteLine("Done");
+        }
+        
+        public static string Disassemble(ref ushort PC, byte[] PRG)
+        {
+            byte instruction = PRG[PC];
+            instruction = (byte)(instruction - instruction % (byte)0b00100000);
+            instruction = (byte)(instruction >> 5);
+            string result = PC.ToString("X")+"(" + PRG[PC].ToString("X") +"):  ";
+            switch (instruction % (byte)0b00000100)
+            {
+                case 0b00:
+                    string thing = "";
+                    
+                    switch((instruction / 0b100) % 0b001_000){
+                        case 0b000:
+                            thing += "($" + PRG[PC].ToString("X") + ",X)";
+                            break;
+                        case 0b001:
+                            thing += "$" + PRG[PC].ToString("X");
+                            break;
+                        case 0b010:
+                            thing += "#$" + PRG[PC].ToString("X");
+                            break;
+                        case 0b011:
+                            thing += "$" + PRG[PC + 1].ToString("X") + PRG[PC].ToString("X");
+                            PC++;
+                            break;
+                        case 0b100:
+                            thing += "$(" + PRG[PC].ToString("X") + "), Y";
+                            break;
+                        case 0b101:
+                            thing += "$" + PRG[PC].ToString("X") + ",X";
+                            break;
+                        case 0b110:
+                            thing += "$" + PRG[PC + 1].ToString("X") + PRG[PC].ToString("X") + ",X";
+                            PC++;
+                            break;
+                        case 0b111:
+                            thing += "$" + PRG[PC + 1].ToString("X") + PRG[PC].ToString("X") + ",Y";
+                            PC++;
+                            break;
+                        default: //should never happen
+                            break;
+                    }
+                    result += cc00[instruction] + " " + thing;
+                    break;
+                case 0b01:
+                    result += cc01[instruction];
+                    break;
+                case 0b10:
+                    result += cc10[instruction];
+                    break;
+                default:
+                    break;
+            }
+            PC++;
+            return result;
         }
     }
 }
