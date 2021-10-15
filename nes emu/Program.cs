@@ -8,9 +8,9 @@ namespace nes_emu
 {
     class Program {
         public static byte accumulator;
-        public static byte indexX;
-        public static byte indexY;
-        public static bool[] statusFlags = new bool[7]; //NV-BDIZC
+        public static byte X;
+        public static byte Y;
+        public static bool[] statusFlags = new bool[7]; //NV?BDIZC
         public static byte stackPTR;
         public static ushort PC = 0;
         public static byte[] RAM = new byte[0xffff];
@@ -23,25 +23,52 @@ namespace nes_emu
             //PRG =
             for(; ;)  //main loop
             {
-                MethodInfo meth = typeof(Instructions).GetMethod("x" + PRG[PC].ToString("X"), BindingFlags.NonPublic|BindingFlags.Static);
+                MethodInfo meth = typeof(Executor).GetMethod("x" + PRG[PC].ToString("X"), BindingFlags.NonPublic);
                 if (meth == null)
                 {
                     throw new Exception("instruction 0x" + PRG[PC].ToString("X") + " is either invalid or not implemented");
                 }
                 else
                 {
-                    
                     meth.Invoke(null,null);
-                    Disassembler disassembler = new(PRG);
+                    //Disassembler disassembler = new(PRG);
 
-                    //PC++;
+                    PC++;
                 }
             }
         }
+        static class Executor //nested class that handles all the operations
+        {
+            static byte Pop() //not really pop
+            {
+                PC++;
+                return PRG[PC];
+            }
+            static void ZeroCheck(byte check)
+            {
+                if (check == 0x00)
+                {
+                    statusFlags[5] = true;
+                }
+                else
+                {
+                    statusFlags[5] = false;
+                }
+            
+            static void x00() //BRK
+            {
+                Console.WriteLine("break");
+            }
+            static void x01() //ORA indirect, x
+            {
+                
+            }
+
+        }
 
     }
-
-    static class Instructions
+    
+    static class oldInstructions //test run trying to figure things out.
     {
         static byte Pop() //not really pop
         {
@@ -53,7 +80,7 @@ namespace nes_emu
         {
             if (check == 0x00)
             {
-                Program.statusFlags[5] = true;
+                    statusFlags[5] = true;
             }
             else
             {
@@ -78,12 +105,12 @@ namespace nes_emu
 
         static void x9A() //TXS
         {
-            Program.stackPTR = Program.indexX;
+            Program.stackPTR = Program.X;
         }
 
         static void x8A() //TXA
         {
-            Program.accumulator = Program.indexX;
+            Program.accumulator = Program.X;
         }
         static void x8D() //STA absolute
         {
@@ -95,13 +122,13 @@ namespace nes_emu
         {
             int addr = Pop() * 0x100;
             addr += Pop();
-            Program.RAM[addr] = Program.indexX;
+            Program.RAM[addr] = Program.X;
         }
 
         static void x95() //STA zero page, x
         {
             
-            Program.RAM[Pop() + Program.indexX] = Program.accumulator;
+            Program.RAM[Pop() + Program.X] = Program.accumulator;
             
         }
 
@@ -109,12 +136,12 @@ namespace nes_emu
         {
             int addr = Pop() * 0x100;
             addr += Pop();
-            addr += Program.indexX;
+            addr += Program.X;
             Program.RAM[addr] = Program.accumulator;
         }
         static void xA2() //LDX immediete
         {
-            Program.indexX = Pop();
+            Program.X = Pop();
         }
         static void xA9()//LDA immediete
         { 
@@ -136,8 +163,8 @@ namespace nes_emu
         
         static void xE8() //inx
         {
-            Program.indexX++;
-            ZeroCheck(Program.indexX);
+            Program.X++;
+            ZeroCheck(Program.X);
         }
 
     }
