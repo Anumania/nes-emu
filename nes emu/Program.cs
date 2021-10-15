@@ -41,6 +41,7 @@ namespace nes_emu
     {
         static byte Pop() //not really pop
         {
+            Program.PC++;
             return Program.PRG[Program.PC];
         }
 
@@ -82,17 +83,13 @@ namespace nes_emu
         }
         static void x8D() //STA absolute
         {
-            Program.PC++;
             int addr = Pop() * 0x100;
-            Program.PC++;
             addr += Pop();
             Program.RAM[addr] = Program.accumulator;
         }
         static void x8E() //STX absolute
         {
-            Program.PC++;
             int addr = Pop() * 0x100;
-            Program.PC++;
             addr += Pop();
             Program.RAM[addr] = Program.indexX;
         }
@@ -100,33 +97,27 @@ namespace nes_emu
         static void x95() //STA zero page, x
         {
             
-            Program.PC++;
             Program.RAM[Pop() + Program.indexX] = Program.accumulator;
             
         }
 
         static void x9D() //STA Absolute,X
         {
-            Program.PC++;
             int addr = Pop() * 0x100;
-            Program.PC++;
             addr += Pop();
             addr += Program.indexX;
             Program.RAM[addr] = Program.accumulator;
         }
         static void xA2() //LDX immediete
         {
-            Program.PC++;
             Program.indexX = Pop();
         }
         static void xA9()//LDA immediete
-        {
-            Program.PC++;
+        { 
             Program.accumulator = Pop();
         }
         static void xD0() //BNE
         {
-            Program.PC++;
             sbyte dest = (sbyte)Pop();
             if (Program.statusFlags[5])
             {
@@ -146,7 +137,7 @@ namespace nes_emu
         }
 
     }
-
+    
     class Parser
     {
         public static void Parse(byte[] rom, ref byte[] PRG, ref byte[] CHR)
@@ -170,6 +161,15 @@ namespace nes_emu
             }
         }
 
+    }
+  
+    static class Disassembler
+    {
+        static string[] cc01 = new string[] { "ORA", "AND", "EOR", "ADC", "STA", "LDA", "CMP", "SBC" };
+        static string Disassemble(ushort PC, byte[] PRG)
+        {
+
+        }
     }
 }
 
