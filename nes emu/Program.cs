@@ -6,7 +6,7 @@ using System.Reflection;
 
 namespace nes_emu
 {
-    class Program {
+    class Program { 
         public static byte accumulator;
         public static byte X;
         public static byte Y;
@@ -15,6 +15,7 @@ namespace nes_emu
         public static ushort PC = 0;
         public static byte[] RAM = new byte[0xffff];
         public static byte[] PRG;
+  
         public static byte[] CHR;
         static void Main(string[] args)
         {
@@ -23,7 +24,10 @@ namespace nes_emu
             //PRG =
             for(; ;)  //main loop
             {
-                MethodInfo meth = typeof(Executor).GetMethod("x" + PRG[PC].ToString("X"), BindingFlags.NonPublic);
+                MethodInfo meth = typeof(Executor).GetMethod("x" + PRG[PC].ToString("X"), BindingFlags.NonPublic|BindingFlags.Static);
+                foreach(var type in typeof(Executor).GetMethods(bindingAttr: BindingFlags.NonPublic | BindingFlags.Static)){
+                    //Console.WriteLine(type.Name);
+                }
                 if (meth == null)
                 {
                     throw new Exception("instruction 0x" + PRG[PC].ToString("X") + " is either invalid or not implemented");
@@ -54,14 +58,67 @@ namespace nes_emu
                 {
                     statusFlags[5] = false;
                 }
-            
+            }
+            static void NegativeCheck(byte check)
+            {
+                statusFlags[0] = (check & 0b10000000) == 1;
+            }
+            static byte IndexedIndirect()
+            {
+                byte arg = Pop();
+                short addr1 = RAM[(byte)(arg + X)];
+                short addr2 = RAM[(byte)(arg + X + 1)];
+                return RAM[addr1 + (addr2 * 256)];
+            }
             static void x00() //BRK
             {
                 Console.WriteLine("break");
             }
             static void x01() //ORA indirect, x
             {
-                
+                accumulator = (byte)(IndexedIndirect() | accumulator);
+                ZeroCheck(accumulator);
+                NegativeCheck(accumulator);
+            }
+            static void x05()//ORA zero page
+            {
+                accumulator = (byte)(RAM[Pop()] | accumulator);
+                ZeroCheck(accumulator);
+                NegativeCheck(accumulator);
+            }
+            static void x06() //ASL 
+            {
+                byte arg = Pop();
+                byte accumulator = RAM[arg];
+                if (accumulator > 0b1000_0000)
+                {
+                    accumulator -= 0b1000_0000;
+                    statusFlags[7] = true;
+                }
+                else
+                {
+                    statusFlags[7] = false;
+                }
+                accumulator = (byte)(accumulator << 1);
+                ZeroCheck(accumulator);
+                NegativeCheck(accumulator);
+
+            }
+            static void x18() //CLC
+            {
+                statusFlags[0] = false;
+            }
+            static void x38() //SEC
+            {
+                statusFlags[0] = true;
+            }
+            static void x58() //CLI
+            {
+                statusFlags[5] = false;
+            }
+            static void x78() //SEI
+            {
+                statusFlags[5] = true;
             }
 
         }
@@ -80,7 +137,7 @@ namespace nes_emu
         {
             if (check == 0x00)
             {
-                    statusFlags[5] = true;
+                    Program.statusFlags[5] = true;
             }
             else
             {

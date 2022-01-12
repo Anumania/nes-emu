@@ -6,4 +6,10 @@
     <RootNamespace>nes_emu</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Update="rom.nes">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
